@@ -37,11 +37,24 @@ class Car:
         self.finished = False
         self.fitness = 0
 
+        # Extra per-car stats, tracked for logging/analysis rather than
+        # anything the sim itself needs.
+        self.frames_alive = 0
+        self.max_speed_reached = 0.0
+        self.speed_sum = 0.0
+        self.turn_left_frames = 0
+        self.turn_right_frames = 0
+
         self.controller = controller
         self.controls = {"forward": False, "left": False, "right": False, "reverse": False}
 
         self.brain = None
         self.sensor = Sensor(self) if controller == "AI" else None
+
+    @property
+    def avg_speed(self):
+        """Average absolute speed over the car's lifetime so far."""
+        return self.speed_sum / self.frames_alive if self.frames_alive else 0.0
 
     def update(self, road_borders, obstacles):
         """Advance the car by one simulation step.
@@ -58,6 +71,14 @@ class Car:
 
         self.control()
         self.move()
+
+        self.frames_alive += 1
+        self.max_speed_reached = max(self.max_speed_reached, abs(self.speed))
+        self.speed_sum += abs(self.speed)
+        if self.controls["left"]:
+            self.turn_left_frames += 1
+        if self.controls["right"]:
+            self.turn_right_frames += 1
 
         if self.assess_damage(road_borders, obstacles):
             self.damaged = True
